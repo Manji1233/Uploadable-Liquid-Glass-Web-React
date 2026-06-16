@@ -8,16 +8,22 @@ import ControlPanel from './components/ControlPanel.jsx'
 
 /* ─── 默认参数 ─── */
 const DEFAULTS = {
-  size: 210,
+  size: 100,
   chroma: 0.50,
   depth: 26,
   blur: 0.0,
   edgeHighlight: 0.80,
-  strength: 0.060,
+  strength: 0.08,
   curvature: 0.41,
   splay: 1.00,
   glow: 0.80,
   specularAngle: 130,
+  // 底图参数
+  bgBrightness: 100,
+  bgContrast: 100,
+  bgSaturate: 100,
+  bgScale: 100,
+  bgRadius: 16,
 }
 const FILTER_ID = 'liquid-glass'
 
@@ -25,7 +31,7 @@ export default function App() {
   const mediaContainerRef = useRef(null)
   const videoRef = useRef(null)
 
-  /* ─── 参数状态 ─── */
+  /* ─── 镜头参数 ─── */
   const [size, setSize]                       = useState(DEFAULTS.size)
   const [chroma, setChroma]                   = useState(DEFAULTS.chroma)
   const [depth, setDepth]                     = useState(DEFAULTS.depth)
@@ -37,8 +43,15 @@ export default function App() {
   const [glow, setGlow]                       = useState(DEFAULTS.glow)
   const [specularAngle, setSpecularAngle]     = useState(DEFAULTS.specularAngle)
 
+  /* ─── 底图参数 ─── */
+  const [bgBrightness, setBgBrightness]       = useState(DEFAULTS.bgBrightness)
+  const [bgContrast, setBgContrast]           = useState(DEFAULTS.bgContrast)
+  const [bgSaturate, setBgSaturate]           = useState(DEFAULTS.bgSaturate)
+  const [bgScale, setBgScale]                 = useState(DEFAULTS.bgScale)
+  const [bgRadius, setBgRadius]               = useState(DEFAULTS.bgRadius)
+
   /* ─── 移动模式 ─── */
-  const [moveMode, setMoveMode] = useState('mouse') // 'mouse' | 'auto'
+  const [moveMode, setMoveMode] = useState('mouse')
 
   /* ─── 媒体状态 ─── */
   const [mediaSrc, setMediaSrc]       = useState('/swan.jpg')
@@ -64,16 +77,12 @@ export default function App() {
 
   /* ─── 重置 ─── */
   const handleReset = useCallback(() => {
-    setSize(DEFAULTS.size)
-    setChroma(DEFAULTS.chroma)
-    setDepth(DEFAULTS.depth)
-    setBlur(DEFAULTS.blur)
-    setEdgeHighlight(DEFAULTS.edgeHighlight)
-    setStrength(DEFAULTS.strength)
-    setCurvature(DEFAULTS.curvature)
-    setSplay(DEFAULTS.splay)
-    setGlow(DEFAULTS.glow)
-    setSpecularAngle(DEFAULTS.specularAngle)
+    setSize(DEFAULTS.size); setChroma(DEFAULTS.chroma); setDepth(DEFAULTS.depth)
+    setBlur(DEFAULTS.blur); setEdgeHighlight(DEFAULTS.edgeHighlight)
+    setStrength(DEFAULTS.strength); setCurvature(DEFAULTS.curvature)
+    setSplay(DEFAULTS.splay); setGlow(DEFAULTS.glow); setSpecularAngle(DEFAULTS.specularAngle)
+    setBgBrightness(DEFAULTS.bgBrightness); setBgContrast(DEFAULTS.bgContrast)
+    setBgSaturate(DEFAULTS.bgSaturate); setBgScale(DEFAULTS.bgScale); setBgRadius(DEFAULTS.bgRadius)
   }, [])
 
   /* ─── 容器尺寸 ─── */
@@ -87,7 +96,7 @@ export default function App() {
     updateSize()
     window.addEventListener('resize', updateSize)
     return () => window.removeEventListener('resize', updateSize)
-  }, [isLoaded, mediaAspect])
+  }, [isLoaded, mediaAspect, bgScale, bgRadius])
 
   /* ─── 媒体加载 ─── */
   const handleImageLoad = useCallback((e) => {
@@ -110,17 +119,15 @@ export default function App() {
     }
   }, [])
 
-  /* ─── 自动移动 (Lissajous 曲线) ─── */
+  /* ─── 自动移动 ─── */
   useEffect(() => {
     if (moveMode !== 'auto' || dimensions.width === 0) return
     const startTime = performance.now()
     let rafId
     const animate = (now) => {
       const t = (now - startTime) / 1000
-      const cx = dimensions.width * 0.5
-      const cy = dimensions.height * 0.5
-      const rx = dimensions.width * 0.3
-      const ry = dimensions.height * 0.3
+      const cx = dimensions.width * 0.5, cy = dimensions.height * 0.5
+      const rx = dimensions.width * 0.3, ry = dimensions.height * 0.3
       setMousePos({
         x: cx + rx * Math.sin(t * 0.7),
         y: cy + ry * Math.sin(t * 0.5 + 1.2),
@@ -132,7 +139,7 @@ export default function App() {
     return () => cancelAnimationFrame(rafId)
   }, [moveMode, dimensions.width, dimensions.height])
 
-  /* ─── 平滑跟随 (lerp) ─── */
+  /* ─── 平滑跟随 ─── */
   useEffect(() => {
     let rafId
     const lerp = (a, b, t) => a + (b - a) * t
@@ -181,37 +188,39 @@ export default function App() {
     height: dimensions.height,
     mouseX: smoothPos.x,
     mouseY: smoothPos.y,
-    size,
-    strength,
-    curvature,
-    chroma,
-    depth,
-    splay,
+    size, strength, curvature, chroma, depth, splay,
   })
+
+  /* ─── 底图 CSS filter ─── */
+  const bgFilter = `brightness(${bgBrightness}%) contrast(${bgContrast}%) saturate(${bgSaturate}%)`
 
   return (
     <div style={{
       width: '100vw', minHeight: '100vh',
       background: 'linear-gradient(145deg, #0a0a0f 0%, #111118 50%, #0d0d14 100%)',
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif",
       WebkitFontSmoothing: 'antialiased',
-      padding: 20,
-      gap: 16,
+      padding: '20px',
+      // 右侧面板占 276px (260px + 16px margin)，图片在剩余空间居中
+      paddingRight: 'calc(20px + 276px)',
+      boxSizing: 'border-box',
+      gap: 0,
     }}>
-      {/* ── 媒体容器 (居中, max-width 700px) ── */}
+      {/* ── 媒体容器 (扣除侧边栏后居中, max-width 700px) ── */}
       <div style={{
         position: 'relative',
         width: '100%',
         maxWidth: 700,
         aspectRatio: `${1 / mediaAspect}`,
-        borderRadius: 16,
+        borderRadius: bgRadius,
         overflow: 'hidden',
         boxShadow: isLoaded
           ? '0 20px 80px rgba(0,0,0,0.6), 0 4px 20px rgba(0,0,0,0.3)'
           : 'none',
-        transition: 'box-shadow 0.5s ease',
+        transition: 'box-shadow 0.5s ease, border-radius 0.3s ease',
       }}>
         <div
           ref={mediaContainerRef}
@@ -228,7 +237,6 @@ export default function App() {
           }}
         >
           <canvas ref={canvasRef} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }} />
-
           <LiquidGlassSVGFilter feImageRef={feImageRef} filterId={FILTER_ID} strength={strength} />
 
           {/* 应用位移滤镜的媒体层 */}
@@ -239,14 +247,26 @@ export default function App() {
                 src={mediaSrc}
                 onLoadedMetadata={handleVideoLoad}
                 autoPlay loop muted playsInline
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s ease' }}
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'cover', display: 'block',
+                  opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s ease',
+                  filter: bgFilter,
+                  transform: `scale(${bgScale / 100})`,
+                }}
               />
             ) : (
               <img
                 src={mediaSrc}
                 alt="Media"
                 onLoad={handleImageLoad}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s ease' }}
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'cover', display: 'block',
+                  opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s ease',
+                  filter: bgFilter,
+                  transform: `scale(${bgScale / 100})`,
+                }}
                 draggable={false}
               />
             )}
@@ -280,6 +300,11 @@ export default function App() {
         splay={splay} setSplay={setSplay}
         glow={glow} setGlow={setGlow}
         specularAngle={specularAngle} setSpecularAngle={setSpecularAngle}
+        bgBrightness={bgBrightness} setBgBrightness={setBgBrightness}
+        bgContrast={bgContrast} setBgContrast={setBgContrast}
+        bgSaturate={bgSaturate} setBgSaturate={setBgSaturate}
+        bgScale={bgScale} setBgScale={setBgScale}
+        bgRadius={bgRadius} setBgRadius={setBgRadius}
         onUpload={handleUpload}
         onReset={handleReset}
         mediaType={mediaType}
