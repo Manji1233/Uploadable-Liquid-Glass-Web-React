@@ -1,8 +1,8 @@
 # Liquid Glass Web React
 
-A React implementation of Apple-style liquid glass refraction using SVG `feDisplacementMap`. Generates a displacement map from Canvas pixel operations, feeds it into an SVG filter pipeline, and refracts real-time DOM content — no WebGL, no OffscreenCanvas, no experimental flags.
+A floating glass lens that refracts whatever is beneath it in real time. Move your cursor across an image or video and the content warps as if viewed through a physical glass sphere — magnifying, bending, and dispersing light at the edges with chromatic aberration. Upload your own images or videos to see them refracted instantly. Adjust the lens size, refraction depth, curvature, glow, specular angle, and more through the control panel. Supports both mouse-follow and automatic wandering modes.
 
-Works in Chrome, Safari, and Firefox on both desktop and mobile.
+The effect runs entirely in the browser with no server dependencies, no WebGL, and no experimental flags.
 
 ## Live Demo
 
